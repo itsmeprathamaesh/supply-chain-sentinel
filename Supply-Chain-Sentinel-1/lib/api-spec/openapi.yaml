@@ -1,0 +1,711 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: MSME Supply Chain Risk Predictor API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: suppliers
+    description: Supplier management and scoring
+  - name: orders
+    description: Order history and demand analysis
+  - name: deliveries
+    description: Delivery tracking and risk flagging
+  - name: forecast
+    description: Demand forecasting
+  - name: alerts
+    description: Risk alerts and currency fluctuations
+  - name: upload
+    description: CSV upload
+  - name: dashboard
+    description: Dashboard summary
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /upload:
+    post:
+      operationId: uploadCsv
+      tags: [upload]
+      summary: Upload CSV data
+      description: Accept CSV data for orders or suppliers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadCsvBody"
+      responses:
+        "200":
+          description: Upload successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+        "400":
+          description: Invalid CSV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /suppliers:
+    get:
+      operationId: listSuppliers
+      tags: [suppliers]
+      summary: List all suppliers with scores
+      responses:
+        "200":
+          description: List of suppliers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+    post:
+      operationId: createSupplier
+      tags: [suppliers]
+      summary: Create a supplier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSupplierBody"
+      responses:
+        "201":
+          description: Supplier created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+
+  /suppliers/{id}:
+    get:
+      operationId: getSupplier
+      tags: [suppliers]
+      summary: Get a supplier
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supplier detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /risks:
+    get:
+      operationId: getRisks
+      tags: [suppliers]
+      summary: Get risk scores per supplier
+      responses:
+        "200":
+          description: Risk scores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupplierRisk"
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List historical orders
+      parameters:
+        - name: supplierId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /demand-trends:
+    get:
+      operationId: getDemandTrends
+      tags: [orders]
+      summary: Get aggregated demand trends over time
+      responses:
+        "200":
+          description: Monthly demand trends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DemandTrend"
+
+  /deliveries:
+    get:
+      operationId: listDeliveries
+      tags: [deliveries]
+      summary: List deliveries with delay status
+      parameters:
+        - name: supplierId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+        - name: riskLevel
+          in: query
+          required: false
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of deliveries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Delivery"
+    post:
+      operationId: createDelivery
+      tags: [deliveries]
+      summary: Create a delivery record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDeliveryBody"
+      responses:
+        "201":
+          description: Delivery created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Delivery"
+
+  /forecast:
+    get:
+      operationId: getForecast
+      tags: [forecast]
+      summary: Get 30-day demand forecast
+      responses:
+        "200":
+          description: 30-day forecast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastResult"
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List all active risk alerts
+      responses:
+        "200":
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+
+  /currency-rates:
+    get:
+      operationId: getCurrencyRates
+      tags: [alerts]
+      summary: Get latest currency exchange rates for raw material cost alerts
+      responses:
+        "200":
+          description: Currency rates data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrencyRates"
+
+  /dashboard-summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get aggregated dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    UploadCsvBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [orders, suppliers, deliveries]
+        csvData:
+          type: string
+      required:
+        - type
+        - csvData
+
+    UploadResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        rowsImported:
+          type: integer
+        message:
+          type: string
+      required:
+        - success
+        - rowsImported
+        - message
+
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        country:
+          type: string
+        category:
+          type: string
+        reliabilityScore:
+          type: number
+        onTimeDeliveryRate:
+          type: number
+        defectRate:
+          type: number
+        responseTime:
+          type: number
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - country
+        - category
+        - reliabilityScore
+        - onTimeDeliveryRate
+        - defectRate
+        - responseTime
+        - riskLevel
+        - createdAt
+
+    CreateSupplierBody:
+      type: object
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        category:
+          type: string
+        onTimeDeliveryRate:
+          type: number
+        defectRate:
+          type: number
+        responseTime:
+          type: number
+      required:
+        - name
+        - country
+        - category
+        - onTimeDeliveryRate
+        - defectRate
+        - responseTime
+
+    SupplierRisk:
+      type: object
+      properties:
+        supplierId:
+          type: integer
+        supplierName:
+          type: string
+        riskScore:
+          type: number
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        factors:
+          type: array
+          items:
+            type: string
+      required:
+        - supplierId
+        - supplierName
+        - riskScore
+        - riskLevel
+        - factors
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        supplierId:
+          type: integer
+        supplierName:
+          type: string
+        product:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        totalValue:
+          type: number
+        orderDate:
+          type: string
+        expectedDelivery:
+          type: string
+        status:
+          type: string
+          enum: [pending, delivered, delayed, cancelled]
+      required:
+        - id
+        - supplierId
+        - supplierName
+        - product
+        - quantity
+        - unitPrice
+        - totalValue
+        - orderDate
+        - expectedDelivery
+        - status
+
+    CreateOrderBody:
+      type: object
+      properties:
+        supplierId:
+          type: integer
+        product:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        orderDate:
+          type: string
+        expectedDelivery:
+          type: string
+      required:
+        - supplierId
+        - product
+        - quantity
+        - unitPrice
+        - orderDate
+        - expectedDelivery
+
+    DemandTrend:
+      type: object
+      properties:
+        month:
+          type: string
+        totalQuantity:
+          type: integer
+        totalValue:
+          type: number
+        orderCount:
+          type: integer
+      required:
+        - month
+        - totalQuantity
+        - totalValue
+        - orderCount
+
+    Delivery:
+      type: object
+      properties:
+        id:
+          type: integer
+        supplierId:
+          type: integer
+        supplierName:
+          type: string
+        orderId:
+          type: ["integer", "null"]
+        product:
+          type: string
+        expectedDate:
+          type: string
+        actualDate:
+          type: ["string", "null"]
+        delayDays:
+          type: integer
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [on_time, delayed, at_risk, delivered]
+        notes:
+          type: ["string", "null"]
+      required:
+        - id
+        - supplierId
+        - supplierName
+        - product
+        - expectedDate
+        - delayDays
+        - riskLevel
+        - status
+
+    CreateDeliveryBody:
+      type: object
+      properties:
+        supplierId:
+          type: integer
+        orderId:
+          type: ["integer", "null"]
+        product:
+          type: string
+        expectedDate:
+          type: string
+        actualDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - supplierId
+        - product
+        - expectedDate
+
+    ForecastResult:
+      type: object
+      properties:
+        predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ForecastPoint"
+        totalPredictedDemand:
+          type: integer
+        avgDailyDemand:
+          type: number
+        trend:
+          type: string
+          enum: [increasing, stable, decreasing]
+        confidence:
+          type: number
+      required:
+        - predictions
+        - totalPredictedDemand
+        - avgDailyDemand
+        - trend
+        - confidence
+
+    ForecastPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        predictedQuantity:
+          type: integer
+        lowerBound:
+          type: integer
+        upperBound:
+          type: integer
+      required:
+        - date
+        - predictedQuantity
+        - lowerBound
+        - upperBound
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [delay_risk, supplier_risk, demand_spike, cost_alert, low_stock]
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        title:
+          type: string
+        message:
+          type: string
+        supplierId:
+          type: ["integer", "null"]
+        supplierName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        isRead:
+          type: boolean
+      required:
+        - id
+        - type
+        - severity
+        - title
+        - message
+        - createdAt
+        - isRead
+
+    CurrencyRates:
+      type: object
+      properties:
+        base:
+          type: string
+        timestamp:
+          type: integer
+        rates:
+          type: object
+          additionalProperties:
+            type: number
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CurrencyAlert"
+      required:
+        - base
+        - timestamp
+        - rates
+        - alerts
+
+    CurrencyAlert:
+      type: object
+      properties:
+        currency:
+          type: string
+        change:
+          type: number
+        message:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+      required:
+        - currency
+        - change
+        - message
+        - severity
+
+    DashboardSummary:
+      type: object
+      properties:
+        avgRiskScore:
+          type: number
+        highRiskSuppliers:
+          type: integer
+        mediumRiskSuppliers:
+          type: integer
+        lowRiskSuppliers:
+          type: integer
+        totalSuppliers:
+          type: integer
+        delayedDeliveries:
+          type: integer
+        atRiskDeliveries:
+          type: integer
+        totalDeliveries:
+          type: integer
+        forecastedDemand30Days:
+          type: integer
+        demandTrend:
+          type: string
+          enum: [increasing, stable, decreasing]
+        activeAlerts:
+          type: integer
+        criticalAlerts:
+          type: integer
+        totalOrderValue:
+          type: number
+        onTimeDeliveryRate:
+          type: number
+      required:
+        - avgRiskScore
+        - highRiskSuppliers
+        - mediumRiskSuppliers
+        - lowRiskSuppliers
+        - totalSuppliers
+        - delayedDeliveries
+        - atRiskDeliveries
+        - totalDeliveries
+        - forecastedDemand30Days
+        - demandTrend
+        - activeAlerts
+        - criticalAlerts
+        - totalOrderValue
+        - onTimeDeliveryRate
